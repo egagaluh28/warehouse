@@ -24,26 +24,30 @@ func NewPenjualanService(db *sql.DB, repo repositories.PenjualanRepository, stok
 }
 
 func (s *penjualanService) Create(req models.CreatePenjualanRequest) (*models.JualHeader, error) {
-    tx, err := s.db.Begin()
-    if err != nil {
-        return nil, fmt.Errorf("gagal memulai transaksi database: %v", err)
-    }
-    defer tx.Rollback()
-
+    // 1. Input data penjualan - Validate barang exists & Check stock availability
     var totalTrans float64
     var details []models.JualDetail
+    var stockData map[int]int = make(map[int]int) // barangID -> stokSebelum
 
-    // 1. Validasi & Kalkulasi Detail Barang
     for _, d := range req.Details {
+        // Validasi: cek apakah barang exists dan dapatkan stok
         currentStok, err := s.stokRepo.GetByBarangID(d.BarangID)
         if err != nil {
             return nil, fmt.Errorf("barang ID %d tidak ditemukan dalam stok", d.BarangID)
         }
+        if currentStok == nil {
+            return nil, fmt.Errorf("barang ID %d tidak ditemukan dalam stok", d.BarangID)
+        }
         
+        // Check stock availability
         if currentStok.StokAkhir < d.Qty {
             return nil, fmt.Errorf("stok tidak mencukupi untuk Barang ID %d. Tersedia: %d, Diminta: %d", d.BarangID, currentStok.StokAkhir, d.Qty)
         }
 
+        stokSebelum := currentStok.StokAkhir
+        stockData[d.BarangID] = stokSebelum
+
+        // 2. Calculate total
         subtotal := float64(d.Qty) * d.Harga
         totalTrans += subtotal
         
@@ -55,7 +59,14 @@ func (s *penjualanService) Create(req models.CreatePenjualanRequest) (*models.Ju
         })
     }
 
-    // 2. Auto Generate No Faktur
+    // Start transaction
+    tx, err := s.db.Begin()
+    if err != nil {
+        return nil, fmt.Errorf("gagal memulai transaksi database: %v", err)
+    }
+    defer tx.Rollback()
+
+    // Auto Generate No Faktur
     if req.NoFaktur == "" {
         req.NoFaktur = utils.GenerateNoFakturJual(s.db)
     }
@@ -68,18 +79,11 @@ func (s *penjualanService) Create(req models.CreatePenjualanRequest) (*models.Ju
         Status:   "selesai",
     }
 
-    // 3. Simpan Header & Detail Transaksi
-    if err := s.repo.Create(tx, header, details); err != nil {
-        return nil, fmt.Errorf("gagal membuat transaksi: %v", err)
-    }
-
-    // 4. Update Stok & Catat History
+    // 3. Update Stok & 4. Record History (SEBELUM save transaction)
     for _, d := range details {
-        // Ambil stok sebelum update (sudah divalidasi di step 1)
-        currentStok, _ := s.stokRepo.GetByBarangID(d.BarangID)
-        stokSebelum := currentStok.StokAkhir
+        stokSebelum := stockData[d.BarangID]
         
-        // Kurangi Stok
+        // Update stok (kurangi)
         if err := s.stokRepo.CreateOrUpdate(tx, d.BarangID, -d.Qty); err != nil {
              return nil, fmt.Errorf("gagal memperbarui stok barang ID %d: %v", d.BarangID, err)
         }
@@ -87,7 +91,7 @@ func (s *penjualanService) Create(req models.CreatePenjualanRequest) (*models.Ju
         // Hitung stok sesudah
         stokSesudah := stokSebelum - d.Qty
         
-        // Catat History
+        // Record history
         history := &models.HistoryStok{
             BarangID:       d.BarangID,
             UserID:         req.UserID,
@@ -102,7 +106,12 @@ func (s *penjualanService) Create(req models.CreatePenjualanRequest) (*models.Ju
         }
     }
 
-    // 5. Commit Transaksi
+    // 5. Save transaction (jual_header & jual_detail) - PALING AKHIR sebelum commit
+    if err := s.repo.Create(tx, header, details); err != nil {
+        return nil, fmt.Errorf("gagal membuat transaksi: %v", err)
+    }
+
+    // Commit transaksi
     if err := tx.Commit(); err != nil {
         return nil, fmt.Errorf("gagal commit transaksi: %v", err)
     }

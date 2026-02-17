@@ -24,21 +24,32 @@ func NewPembelianService(db *sql.DB, repo repositories.PembelianRepository, stok
 }
 
 func (s *pembelianService) Create(req models.CreatePembelianRequest) (*models.BeliHeader, error) {
-    tx, err := s.db.Begin()
-    if err != nil {
-        return nil, fmt.Errorf("gagal memulai transaksi database: %v", err)
-    }
-    defer tx.Rollback()
-
-    // 1. Kalkulasi Total dan Detail
+    // 1. Input data pembelian - Validate barang exists
     var totalTrans float64
     var details []models.BeliDetail
+    var stockData map[int]int = make(map[int]int) // barangID -> stokSebelum
 
     for _, d := range req.Details {
-        // Validasi Barang (Optional, cek apakah barang exists)
-        // _, err := s.barangRepo.GetByID(d.BarangID)
-        // if err != nil { return nil, fmt.Errorf("barang tidak ditemukan") }
+        // Validasi: cek apakah barang exists
+        barang, err := s.barangRepo.GetByID(d.BarangID)
+        if err != nil {
+            return nil, fmt.Errorf("barang ID %d tidak ditemukan: %v", d.BarangID, err)
+        }
+        if barang == nil {
+            return nil, fmt.Errorf("barang ID %d tidak ditemukan", d.BarangID)
+        }
 
+        // Ambil stok saat ini
+        currentStok, _ := s.stokRepo.GetByBarangID(d.BarangID)
+        var stokSebelum int
+        if currentStok != nil {
+            stokSebelum = currentStok.StokAkhir
+        } else {
+            stokSebelum = 0
+        }
+        stockData[d.BarangID] = stokSebelum
+
+        // 2. Calculate total
         subtotal := float64(d.Qty) * d.Harga
         totalTrans += subtotal
         
@@ -50,7 +61,14 @@ func (s *pembelianService) Create(req models.CreatePembelianRequest) (*models.Be
         })
     }
 
-    // 2. Auto Generate No Faktur
+    // Start transaction
+    tx, err := s.db.Begin()
+    if err != nil {
+        return nil, fmt.Errorf("gagal memulai transaksi database: %v", err)
+    }
+    defer tx.Rollback()
+
+    // Auto Generate No Faktur
     if req.NoFaktur == "" {
         req.NoFaktur = utils.GenerateNoFakturBeli(s.db)
     }
@@ -63,23 +81,11 @@ func (s *pembelianService) Create(req models.CreatePembelianRequest) (*models.Be
         Status:   "selesai",
     }
 
-    // 3. Simpan Transaksi ke Database
-    if err := s.repo.Create(tx, header, details); err != nil {
-        return nil, fmt.Errorf("gagal membuat transaksi: %v", err)
-    }
-
-    // 4. Update Stok & Buat History
+    // 3. Update Stok & 4. Record History (SEBELUM save transaction)
     for _, d := range details {
-        // Ambil stok sebelum update
-        currentStok, err := s.stokRepo.GetByBarangID(d.BarangID)
-        var stokSebelum int
-        if err != nil || currentStok == nil {
-            stokSebelum = 0
-        } else {
-            stokSebelum = currentStok.StokAkhir
-        }
+        stokSebelum := stockData[d.BarangID]
         
-        // Tambah Stok
+        // Update stok
         if err := s.stokRepo.CreateOrUpdate(tx, d.BarangID, d.Qty); err != nil {
              return nil, fmt.Errorf("gagal memperbarui stok barang ID %d: %v", d.BarangID, err)
         }
@@ -87,7 +93,7 @@ func (s *pembelianService) Create(req models.CreatePembelianRequest) (*models.Be
         // Hitung stok sesudah
         stokSesudah := stokSebelum + d.Qty
         
-        // Catat History
+        // Record history
         history := &models.HistoryStok{
             BarangID:       d.BarangID,
             UserID:         req.UserID,
@@ -102,7 +108,12 @@ func (s *pembelianService) Create(req models.CreatePembelianRequest) (*models.Be
         }
     }
 
-    // 5. Commit Transaksi
+    // 5. Save transaction (beli_header & beli_detail) - PALING AKHIR sebelum commit
+    if err := s.repo.Create(tx, header, details); err != nil {
+        return nil, fmt.Errorf("gagal membuat transaksi: %v", err)
+    }
+
+    // Commit transaksi
     if err := tx.Commit(); err != nil {
         return nil, fmt.Errorf("gagal commit transaksi: %v", err)
     }
