@@ -1,0 +1,562 @@
+{
+	"info": {
+		"_postman_id": "warehouse-api-collection",
+		"name": "Warehouse Inventory API",
+		"description": "API Collection for Warehouse Inventory System (Golang + PostgreSQL) - Standardized",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"item": [
+		{
+			"name": "Auth",
+			"item": [
+				{
+					"name": "Login",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"username\": \"admin\",\n    \"password\": \"admin\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{base_url}}/api/login",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"login"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Register (Admin Only)",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"username\": \"staff_baru\",\n    \"password\": \"staff123\",\n    \"email\": \"staff@warehouse.com\",\n    \"full_name\": \"Staff Gudang Baru\",\n    \"role\": \"staff\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{base_url}}/api/register",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"register"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Master Data",
+			"item": [
+				{
+					"name": "Get All Barang (Sorted)",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/barang?limit=10&page=1&sort_by=harga_jual&order=desc",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"barang"
+							],
+							"query": [
+								{
+									"key": "search",
+									"value": "",
+									"disabled": true
+								},
+								{
+									"key": "page",
+									"value": "1"
+								},
+								{
+									"key": "limit",
+									"value": "10"
+								},
+                                {
+                                    "key": "sort_by",
+                                    "value": "harga_jual"
+                                },
+                                {
+                                    "key": "order",
+                                    "value": "desc"
+                                }
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get Barang By ID",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/barang/1",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"barang",
+								"1"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Create Barang",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"kode_barang\": \"BRG-NEW-001\",\n    \"nama_barang\": \"Contoh Barang Baru\",\n    \"deskripsi\": \"Deskripsi barang baru\",\n    \"satuan\": \"pcs\",\n    \"harga_beli\": 50000,\n    \"harga_jual\": 75000\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{base_url}}/api/barang",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"barang"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Update Barang",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"kode_barang\": \"BRG-NEW-001\",\n    \"nama_barang\": \"Contoh Barang Edit\",\n    \"deskripsi\": \"Deskripsi diedit\",\n    \"satuan\": \"pcs\",\n    \"harga_beli\": 55000,\n    \"harga_jual\": 80000\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{base_url}}/api/barang/1",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"barang",
+								"1"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Delete Barang",
+					"request": {
+						"method": "DELETE",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/barang/1",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"barang",
+								"1"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+        {
+            "name": "Dashboard",
+            "item": [
+                {
+                    "name": "Get Stats",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{token}}",
+                                "type": "text"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/dashboard",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "dashboard"
+                            ]
+                        }
+                    },
+                    "response": []
+                }
+            ]
+        },
+		{
+			"name": "Stok Management",
+			"item": [
+				{
+					"name": "Get All Stok",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/stok",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"stok"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get Stok By Barang ID",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/stok/1",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"stok",
+								"1"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get History Stok (All)",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/history-stok",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"history-stok"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get History Stok By Barang",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/history-stok/1",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"history-stok",
+								"1"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Transaksi Pembelian",
+			"item": [
+				{
+					"name": "Create Pembelian",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"no_faktur\": \"BELI-001\",\n    \"supplier\": \"PT Supplier A\",\n    \"details\": [\n        {\n            \"barang_id\": 1,\n            \"qty\": 10,\n            \"harga\": 14000000\n        }\n    ]\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{base_url}}/api/pembelian",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"pembelian"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get All Pembelian",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/pembelian",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"pembelian"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get Pembelian Detail",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/pembelian/1",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"pembelian",
+								"1"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Transaksi Penjualan",
+			"item": [
+				{
+					"name": "Create Penjualan",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"no_faktur\": \"JUAL-001\",\n    \"customer\": \"Budi Santoso\",\n    \"details\": [\n        {\n            \"barang_id\": 1,\n            \"qty\": 1,\n            \"harga\": 17500000\n        }\n    ]\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{base_url}}/api/penjualan",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"penjualan"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get All Penjualan",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/penjualan",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"penjualan"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get Penjualan Detail",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/penjualan/1",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"penjualan",
+								"1"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		}
+	],
+	"variable": [
+		{
+			"key": "base_url",
+			"value": "http://localhost:8080",
+			"type": "string"
+		},
+		{
+			"key": "token",
+			"value": "PASTE_TOKEN_HERE",
+			"type": "string"
+		}
+	]
+}

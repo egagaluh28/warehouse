@@ -1,0 +1,775 @@
+basePath: /api
+definitions:
+  models.APIResponse:
+    properties:
+      data: {}
+      message:
+        type: string
+      meta:
+        $ref: '#/definitions/models.Pagination'
+      success:
+        type: boolean
+    type: object
+  models.CreateBarangRequest:
+    properties:
+      deskripsi:
+        type: string
+      harga_beli:
+        type: number
+      harga_jual:
+        type: number
+      nama_barang:
+        type: string
+      satuan:
+        type: string
+    type: object
+  models.CreatePembelianDetail:
+    properties:
+      barang_id:
+        type: integer
+      harga:
+        type: number
+      qty:
+        type: integer
+    type: object
+  models.CreatePembelianRequest:
+    properties:
+      details:
+        items:
+          $ref: '#/definitions/models.CreatePembelianDetail'
+        type: array
+      no_faktur:
+        description: Optional, or generated
+        type: string
+      supplier:
+        type: string
+      user_id:
+        type: integer
+    type: object
+  models.CreatePenjualanDetail:
+    properties:
+      barang_id:
+        type: integer
+      harga:
+        type: number
+      qty:
+        type: integer
+    type: object
+  models.CreatePenjualanRequest:
+    properties:
+      customer:
+        type: string
+      details:
+        items:
+          $ref: '#/definitions/models.CreatePenjualanDetail'
+        type: array
+      no_faktur:
+        description: Optional, or generated
+        type: string
+      user_id:
+        type: integer
+    type: object
+  models.LoginRequest:
+    properties:
+      password:
+        example: admin
+        type: string
+      username:
+        example: admin
+        type: string
+    type: object
+  models.Pagination:
+    properties:
+      limit:
+        type: integer
+      page:
+        type: integer
+      total:
+        type: integer
+    type: object
+  models.RegisterRequest:
+    properties:
+      email:
+        example: staff@example.com
+        type: string
+      full_name:
+        example: New Staff Member
+        type: string
+      password:
+        example: staff123
+        type: string
+      role:
+        description: admin or staff
+        example: staff
+        type: string
+      username:
+        example: newstaff
+        type: string
+    required:
+    - email
+    - full_name
+    - password
+    - role
+    - username
+    type: object
+host: localhost:8080
+info:
+  contact: {}
+  description: API for managing warehouse inventory, stock, and transactions.
+  title: Warehouse Inventory API
+  version: "1.0"
+paths:
+  /barang:
+    get:
+      consumes:
+      - application/json
+      description: Mengambil daftar barang dengan fitur pencarian, pagination, dan
+        sorting.
+      parameters:
+      - description: Cari berdasarkan nama/kode
+        in: query
+        name: search
+        type: string
+      - description: Nomor halaman
+        in: query
+        name: page
+        type: integer
+      - description: Jumlah item per halaman
+        in: query
+        name: limit
+        type: integer
+      - description: Urutkan berdasarkan (harga_beli, harga_jual, nama, id)
+        in: query
+        name: sort_by
+        type: string
+      - description: Urutan (asc, desc)
+        in: query
+        name: order
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.APIResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/models.APIResponse'
+      security:
+      - BearerAuth: []
+      summary: Ambil semua data barang
+      tags:
+      - Barang
+    post:
+      consumes:
+      - application/json
+      description: Menambahkan data barang baru ke inventaris. kode_barang akan digenerate
+        otomatis oleh sistem.
+      parameters:
+      - description: Data Barang
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/models.CreateBarangRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/models.APIResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/models.APIResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/models.APIResponse'
+      security:
+      - BearerAuth: []
+      summary: Tambah barang baru
+      tags:
+      - Barang
+  /barang/{id}:
+    delete:
+      consumes:
+      - application/json
+      description: Menghapus barang dari inventaris
+      parameters:
+      - description: ID Barang
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.APIResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/models.APIResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/models.APIResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/models.APIResponse'
+      security:
+      - BearerAuth: []
+      summary: Hapus barang
+      tags:
+      - Barang
+    get:
+      consumes:
+      - application/json
+      description: Mengambil detail barang spesifik
+      parameters:
+      - description: ID Barang
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.APIResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/models.APIResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/models.APIResponse'
+      security:
+      - BearerAuth: []
+      summary: Ambil barang berdasarkan ID
+      tags:
+      - Barang
+    put:
+      consumes:
+      - application/json
+      description: Memperbarui detail barang yang ada
+      parameters:
+      - description: ID Barang
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Data Barang
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/models.CreateBarangRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.APIResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/models.APIResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/models.APIResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/models.APIResponse'
+      security:
+      - BearerAuth: []
+      summary: Perbarui data barang
+      tags:
+      - Barang
+  /barang/stok:
+    get:
+      consumes:
+      - application/json
+      description: Mengambil daftar barang beserta stok saat ini (join dengan tabel
+        stok) dengan fitur pencarian, pagination, dan sorting.
+      parameters:
+      - description: Cari berdasarkan nama/kode
+        in: query
+        name: search
+        type: string
+      - description: Nomor halaman
+        in: query
+        name: page
+        type: integer
+      - description: Jumlah item per halaman
+        in: query
+        name: limit
+        type: integer
+      - description: Urutkan berdasarkan (harga_beli, harga_jual, nama, id, stok)
+        in: query
+        name: sort_by
+        type: string
+      - description: Urutan (asc, desc)
+        in: query
+        name: order
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.APIResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/models.APIResponse'
+      security:
+      - BearerAuth: []
+      summary: Ambil semua data barang dengan stok
+      tags:
+      - Barang
+  /dashboard:
+    get:
+      consumes:
+      - application/json
+      description: Mengambil ringkasan data gudang (Total Barang, Stok, Nilai Aset,
+        Top Selling)
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.APIResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/models.APIResponse'
+      security:
+      - BearerAuth: []
+      summary: Ambil statistik dashboard
+      tags:
+      - Dashboard
+  /history-stok:
+    get:
+      consumes:
+      - application/json
+      description: 'Mengambil riwayat pergerakan stok. Opsional: filter berdasarkan
+        ID barang.'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.APIResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/models.APIResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/models.APIResponse'
+      security:
+      - BearerAuth: []
+      summary: Ambil riwayat stok
+      tags:
+      - Stok
+  /history-stok/{id}:
+    get:
+      consumes:
+      - application/json
+      description: 'Mengambil riwayat pergerakan stok. Opsional: filter berdasarkan
+        ID barang.'
+      parameters:
+      - description: ID Barang (opsional)
+        in: path
+        name: id
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.APIResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/models.APIResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/models.APIResponse'
+      security:
+      - BearerAuth: []
+      summary: Ambil riwayat stok
+      tags:
+      - Stok
+  /login:
+    post:
+      consumes:
+      - application/json
+      description: Otentikasi pengguna dan mendapatkan token JWT
+      parameters:
+      - description: Kredensial Login
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/models.LoginRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.APIResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/models.APIResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/models.APIResponse'
+      summary: Masuk sistem
+      tags:
+      - Auth
+  /pembelian:
+    get:
+      consumes:
+      - application/json
+      description: Mengambil daftar transaksi pembelian. Mendukung filter rentang
+        tanggal.
+      parameters:
+      - description: Tanggal Mulai (YYYY-MM-DD)
+        in: query
+        name: start_date
+        type: string
+      - description: Tanggal Selesai (YYYY-MM-DD)
+        in: query
+        name: end_date
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.APIResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/models.APIResponse'
+      security:
+      - BearerAuth: []
+      summary: Ambil semua transaksi pembelian
+      tags:
+      - Pembelian
+    post:
+      consumes:
+      - application/json
+      description: Mencatat transaksi pembelian stok masuk baru
+      parameters:
+      - description: Data Pembelian
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/models.CreatePembelianRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/models.APIResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/models.APIResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/models.APIResponse'
+      security:
+      - BearerAuth: []
+      summary: Buat transaksi pembelian
+      tags:
+      - Pembelian
+  /pembelian/{id}:
+    get:
+      consumes:
+      - application/json
+      description: Mengambil detail transaksi pembelian spesifik
+      parameters:
+      - description: ID Transaksi
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.APIResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/models.APIResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/models.APIResponse'
+      security:
+      - BearerAuth: []
+      summary: Ambil detail pembelian
+      tags:
+      - Pembelian
+  /penjualan:
+    get:
+      consumes:
+      - application/json
+      description: Mengambil daftar transaksi penjualan. Mendukung filter rentang
+        tanggal.
+      parameters:
+      - description: Tanggal Mulai (YYYY-MM-DD)
+        in: query
+        name: start_date
+        type: string
+      - description: Tanggal Selesai (YYYY-MM-DD)
+        in: query
+        name: end_date
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.APIResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/models.APIResponse'
+      security:
+      - BearerAuth: []
+      summary: Ambil semua transaksi penjualan
+      tags:
+      - Penjualan
+    post:
+      consumes:
+      - application/json
+      description: Mencatat transaksi penjualan baru dan mengurangi stok
+      parameters:
+      - description: Data Penjualan
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/models.CreatePenjualanRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/models.APIResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/models.APIResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/models.APIResponse'
+      security:
+      - BearerAuth: []
+      summary: Buat transaksi penjualan
+      tags:
+      - Penjualan
+  /penjualan/{id}:
+    get:
+      consumes:
+      - application/json
+      description: Mengambil detail transaksi penjualan spesifik
+      parameters:
+      - description: ID Transaksi
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.APIResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/models.APIResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/models.APIResponse'
+      security:
+      - BearerAuth: []
+      summary: Ambil detail penjualan
+      tags:
+      - Penjualan
+  /register:
+    post:
+      consumes:
+      - application/json
+      description: Mendaftarkan pengguna baru (hanya admin)
+      parameters:
+      - description: Informasi Pengguna
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/models.RegisterRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/models.APIResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/models.APIResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/models.APIResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/models.APIResponse'
+      security:
+      - BearerAuth: []
+      summary: Mendaftarkan pengguna baru
+      tags:
+      - Auth
+  /stok:
+    get:
+      consumes:
+      - application/json
+      description: Mengambil data stok terkini untuk semua barang
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.APIResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/models.APIResponse'
+      security:
+      - BearerAuth: []
+      summary: Ambil semua stok
+      tags:
+      - Stok
+  /stok/{id}:
+    get:
+      consumes:
+      - application/json
+      description: Mengambil informasi stok untuk barang tertentu
+      parameters:
+      - description: ID Barang
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.APIResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/models.APIResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/models.APIResponse'
+      security:
+      - BearerAuth: []
+      summary: Ambil stok berdasarkan ID barang
+      tags:
+      - Stok
+  /users:
+    get:
+      consumes:
+      - application/json
+      description: Mendapatkan daftar semua pengguna (hanya admin)
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.APIResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/models.APIResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/models.APIResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/models.APIResponse'
+      security:
+      - BearerAuth: []
+      summary: Mendapatkan semua pengguna
+      tags:
+      - Auth
+securityDefinitions:
+  BearerAuth:
+    in: header
+    name: Authorization
+    type: apiKey
+swagger: "2.0"
+tags:
+- description: Autentikasi dan manajemen pengguna
+  name: Auth
+- description: Statistik dan ringkasan data gudang
+  name: Dashboard
+- description: Manajemen data barang inventaris
+  name: Barang
+- description: Manajemen dan monitoring stok barang
+  name: Stok
+- description: Transaksi pembelian dan stok masuk
+  name: Pembelian
+- description: Transaksi penjualan dan stok keluar
+  name: Penjualan
