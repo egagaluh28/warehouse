@@ -75,20 +75,26 @@ func (s *penjualanService) Create(req models.CreatePenjualanRequest) (*models.Ju
 
     // 4. Update Stok & Catat History
     for _, d := range details {
+        // Ambil stok sebelum update (sudah divalidasi di step 1)
+        currentStok, _ := s.stokRepo.GetByBarangID(d.BarangID)
+        stokSebelum := currentStok.StokAkhir
+        
         // Kurangi Stok
         if err := s.stokRepo.CreateOrUpdate(tx, d.BarangID, -d.Qty); err != nil {
              return nil, fmt.Errorf("gagal memperbarui stok barang ID %d: %v", d.BarangID, err)
         }
         
-        // Catat History
+        // Hitung stok sesudah
+        stokSesudah := stokSebelum - d.Qty
         
+        // Catat History
         history := &models.HistoryStok{
             BarangID:       d.BarangID,
             UserID:         req.UserID,
             JenisTransaksi: "keluar",
             Jumlah:         d.Qty,
-            StokSebelum:    0, 
-            StokSesudah:    0, 
+            StokSebelum:    stokSebelum,
+            StokSesudah:    stokSesudah,
             Keterangan:     "Penjualan " + header.NoFaktur,
         }
         if err := s.stokRepo.CreateHistory(tx, history); err != nil {

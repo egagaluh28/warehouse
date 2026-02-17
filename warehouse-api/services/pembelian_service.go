@@ -70,10 +70,22 @@ func (s *pembelianService) Create(req models.CreatePembelianRequest) (*models.Be
 
     // 4. Update Stok & Buat History
     for _, d := range details {
+        // Ambil stok sebelum update
+        currentStok, err := s.stokRepo.GetByBarangID(d.BarangID)
+        var stokSebelum int
+        if err != nil || currentStok == nil {
+            stokSebelum = 0
+        } else {
+            stokSebelum = currentStok.StokAkhir
+        }
+        
         // Tambah Stok
         if err := s.stokRepo.CreateOrUpdate(tx, d.BarangID, d.Qty); err != nil {
              return nil, fmt.Errorf("gagal memperbarui stok barang ID %d: %v", d.BarangID, err)
         }
+        
+        // Hitung stok sesudah
+        stokSesudah := stokSebelum + d.Qty
         
         // Catat History
         history := &models.HistoryStok{
@@ -81,8 +93,8 @@ func (s *pembelianService) Create(req models.CreatePembelianRequest) (*models.Be
             UserID:         req.UserID,
             JenisTransaksi: "masuk",
             Jumlah:         d.Qty,
-            StokSebelum:    0, 
-            StokSesudah:    0, 
+            StokSebelum:    stokSebelum,
+            StokSesudah:    stokSesudah,
             Keterangan:     "Pembelian " + header.NoFaktur,
         }
         if err := s.stokRepo.CreateHistory(tx, history); err != nil {
