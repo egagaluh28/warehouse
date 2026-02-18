@@ -81,7 +81,14 @@ func (s *penjualanService) Create(req models.CreatePenjualanRequest) (*models.Ju
 
     // 3. Update Stok & 4. Record History (SEBELUM save transaction)
     for _, d := range details {
-        stokSebelum := stockData[d.BarangID]
+        // Ambil stok sebelum update dari DALAM transaksi untuk consistency
+        currentStok, err := s.stokRepo.GetByBarangIDWithTx(tx, d.BarangID)
+        var stokSebelum int
+        if err != nil || currentStok == nil {
+            stokSebelum = 0
+        } else {
+            stokSebelum = currentStok.StokAkhir
+        }
         
         // Update stok (kurangi)
         if err := s.stokRepo.CreateOrUpdate(tx, d.BarangID, -d.Qty); err != nil {

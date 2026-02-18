@@ -27,7 +27,6 @@ func (s *pembelianService) Create(req models.CreatePembelianRequest) (*models.Be
     // 1. Input data pembelian - Validate barang exists
     var totalTrans float64
     var details []models.BeliDetail
-    var stockData map[int]int = make(map[int]int) // barangID -> stokSebelum
 
     for _, d := range req.Details {
         // Validasi: cek apakah barang exists
@@ -38,16 +37,6 @@ func (s *pembelianService) Create(req models.CreatePembelianRequest) (*models.Be
         if barang == nil {
             return nil, fmt.Errorf("barang ID %d tidak ditemukan", d.BarangID)
         }
-
-        // Ambil stok saat ini
-        currentStok, _ := s.stokRepo.GetByBarangID(d.BarangID)
-        var stokSebelum int
-        if currentStok != nil {
-            stokSebelum = currentStok.StokAkhir
-        } else {
-            stokSebelum = 0
-        }
-        stockData[d.BarangID] = stokSebelum
 
         // 2. Calculate total
         subtotal := float64(d.Qty) * d.Harga
@@ -83,7 +72,14 @@ func (s *pembelianService) Create(req models.CreatePembelianRequest) (*models.Be
 
     // 3. Update Stok & 4. Record History (SEBELUM save transaction)
     for _, d := range details {
-        stokSebelum := stockData[d.BarangID]
+        // Ambil stok sebelum update dari DALAM transaksi untuk consistency
+        currentStok, err := s.stokRepo.GetByBarangIDWithTx(tx, d.BarangID)
+        var stokSebelum int
+        if err != nil || currentStok == nil {
+            stokSebelum = 0
+        } else {
+            stokSebelum = currentStok.StokAkhir
+        }
         
         // Update stok
         if err := s.stokRepo.CreateOrUpdate(tx, d.BarangID, d.Qty); err != nil {

@@ -8,6 +8,7 @@ import (
 type StokRepository interface {
 	GetAll() ([]models.Stok, error)
 	GetByBarangID(barangID int) (*models.Stok, error)
+	GetByBarangIDWithTx(tx *sql.Tx, barangID int) (*models.Stok, error)
     CreateOrUpdate(tx *sql.Tx, barangID, qtyChange int) error
 	GetHistory(barangID int) ([]models.HistoryStok, error)
     CreateHistory(tx *sql.Tx, history *models.HistoryStok) error
@@ -57,6 +58,27 @@ func (r *stokRepository) GetByBarangID(barangID int) (*models.Stok, error) {
     var s models.Stok
     s.Barang = &models.Barang{}
     err := r.db.QueryRow(query, barangID).Scan(
+        &s.ID, &s.BarangID, &s.StokAkhir, &s.UpdatedAt, 
+        &s.Barang.KodeBarang, &s.Barang.NamaBarang, &s.Barang.Satuan, &s.Barang.HargaJual,
+    )
+    if err != nil {
+        return nil, err
+    }
+    return &s, nil
+}
+
+// GetByBarangIDWithTx queries stock within a transaction (important for consistent audit trail)
+func (r *stokRepository) GetByBarangIDWithTx(tx *sql.Tx, barangID int) (*models.Stok, error) {
+    query := `
+        SELECT s.id, s.barang_id, s.stok_akhir, s.updated_at,
+               b.kode_barang, b.nama_barang, b.satuan, b.harga_jual
+        FROM mstok s
+        JOIN master_barang b ON s.barang_id = b.id
+        WHERE s.barang_id = $1`
+    
+    var s models.Stok
+    s.Barang = &models.Barang{}
+    err := tx.QueryRow(query, barangID).Scan(
         &s.ID, &s.BarangID, &s.StokAkhir, &s.UpdatedAt, 
         &s.Barang.KodeBarang, &s.Barang.NamaBarang, &s.Barang.Satuan, &s.Barang.HargaJual,
     )
